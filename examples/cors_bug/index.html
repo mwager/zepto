@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>example of xhr.withCredentials bug</title>
+</head>
+<body>
+<p>Example for <a href="https://github.com/madrobby/zepto/pull/935">issue #935</a></p>
+<button id="test1">click me</button>
+
+<div id="logs" style="color:white;background-color:black;"></div>
+
+<script type="text/javascript" src="../../dist/zepto.js"></script>
+<script type="text/javascript">
+    var $log;
+    function log(msg) {
+        if(window.console && console.log) {
+            console.log.apply(console, arguments);
+        }
+        if($log) {
+            $log.append(msg + '<br>');
+        }
+    }
+
+    window.onerror = function(msg, file, line) {
+        log(msg + ' in file ' + file + ' on line ' + line);
+    };
+
+
+    // 1. PREPARATION
+    // --- configure zepto to support CORS ---
+    $.ajaxSettings.crossDomain = true;
+    $.ajaxSettings.beforeSend = function(xhr) {
+        log('AJAX before send...')
+
+        try {
+            xhr.withCredentials = true;
+        }
+        catch(e) {
+            log(e) // -> INVALID_STATE_ERROR: DOM Exception 11
+        }
+    }
+
+    // 2. REPRODUCTION
+    function doCrossDomainAJAXCall() {
+        $.ajax({
+            url: 'https://example.com/cors.php', // change this - see ./cors.php
+            dataType: 'html',
+            success: function(data) {
+                log('AJAX SUCCESS, data: ' + data);
+            },
+            error: function(xhr) {
+                log('AJAX error: ');
+            }
+        });
+    }
+    $(function() {
+        $log = $('#logs');
+
+        $('#test1').on('click', function() {
+            doCrossDomainAJAXCall();
+        });
+    });
+</script>
+</body>
+</html>
